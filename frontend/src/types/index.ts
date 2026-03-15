@@ -56,6 +56,8 @@ export interface EvaluationResult {
   evaluation: string
   status: 'pending' | 'perfect' | 'has_issues'
   submissionId: number
+  isOptimal?: boolean
+  betterHint?: string
 }
 
 // Better solution hint

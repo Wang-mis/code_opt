@@ -94,6 +94,8 @@ class EvaluateResponse(BaseModel):
     evaluation: str
     status: SubmissionStatus
     submission_id: int
+    is_optimal: bool = False
+    better_hint: str = ""
 
 
 class BetterSolutionRequest(BaseModel):

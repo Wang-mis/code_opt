@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
 import CodeEditor from '../components/CodeEditor.vue'
 import MarkdownViewer from '../components/MarkdownViewer.vue'
 import { useModelConfigStore } from '../stores/modelConfig'
@@ -23,17 +23,11 @@ const editorStore = useEditorStore()
 const evaluationResult = ref<EvaluationResult | null>(null)
 const optimalSolution = ref<OptimalSolution | null>(null)
 const showOptimalSolution = ref(false)
-const betterSolutionHint = ref('')
-const showBetterHint = ref(false)
 const isLoading = ref(false)
 const error = ref('')
 
 // Panel width state (percentage for problem panel, editor takes the rest)
 const problemPanelWidth = ref(30)
-
-// Computed
-const isPerfectCode = computed(() => evaluationResult.value?.status === 'perfect')
-const canShowBetterHint = computed(() => isPerfectCode.value && !showBetterHint.value)
 
 // Watch problem changes to reset state
 watch(
@@ -42,8 +36,6 @@ watch(
     evaluationResult.value = null
     optimalSolution.value = null
     showOptimalSolution.value = false
-    betterSolutionHint.value = ''
-    showBetterHint.value = false
     editorStore.reset()
   },
   { immediate: true }
@@ -105,34 +97,6 @@ async function showAnswer() {
   } catch (e: any) {
     error.value = '获取答案失败'
     console.error('Failed to get optimal solution:', e)
-  } finally {
-    isLoading.value = false
-  }
-}
-
-async function getBetterHint() {
-  if (!editorStore.code) return
-
-  if (!modelConfigStore.isConfigured()) {
-    error.value = '请先配置模型'
-    return
-  }
-
-  try {
-    isLoading.value = true
-    error.value = ''
-
-    const response = await evaluateApi.getBetterSolutionHint({
-      problemId: props.problem.id,
-      code: editorStore.code,
-      modelConfig: modelConfigStore.config,
-    })
-
-    betterSolutionHint.value = response.data?.hint || ''
-    showBetterHint.value = true
-  } catch (e: any) {
-    error.value = '获取提示失败'
-    console.error('Failed to get better hint:', e)
   } finally {
     isLoading.value = false
   }
@@ -364,34 +328,30 @@ defineExpose({
               </svg>
               {{ evaluationResult.status === 'perfect' ? '代码完美' : '需要改进' }}
             </span>
+            <span
+              v-if="evaluationResult.status === 'perfect' && evaluationResult.isOptimal"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium rounded-full bg-(--accent-soft) text-(--accent) ml-2"
+            >
+              <svg
+                class="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polygon
+                  points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+                ></polygon>
+              </svg>
+              最优解
+            </span>
           </div>
           <MarkdownViewer :content="evaluationResult.evaluation" />
-
-          <!-- Better hint button -->
-          <button
-            v-if="canShowBetterHint"
-            :disabled="isLoading"
-            class="btn mt-4 bg-(--warning-soft) text-(--warning) border border-amber-500/20 hover:bg-amber-500/20"
-            @click="getBetterHint"
-          >
-            <svg
-              class="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="16" x2="12" y2="12"></line>
-              <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
-            提示更好解法
-          </button>
 
           <!-- Better hint result -->
           <Transition name="fade-slide">
             <div
-              v-if="showBetterHint && betterSolutionHint"
+              v-if="evaluationResult.status === 'perfect' && evaluationResult.betterHint"
               class="mt-4 p-4 bg-(--warning-soft) border border-amber-500/20 rounded-[10px]"
             >
               <div class="flex items-center gap-2 text-sm font-semibold text-(--warning) mb-3">
@@ -406,7 +366,7 @@ defineExpose({
                 </svg>
                 <span>更好的解法</span>
               </div>
-              <MarkdownViewer :content="betterSolutionHint" />
+              <MarkdownViewer :content="evaluationResult.betterHint" />
             </div>
           </Transition>
         </div>
