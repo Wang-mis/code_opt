@@ -99,7 +99,8 @@ export const evaluateApi = {
 
 // Review API
 export const reviewApi = {
-  getRandomProblem: () => api.get<Problem>('/review/random'),
+  getRandomProblem: (excludeId?: number) =>
+    api.get<Problem>('/review/random', { params: excludeId ? { exclude_id: excludeId } : {} }),
 }
 
 export default api

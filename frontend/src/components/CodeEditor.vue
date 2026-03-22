@@ -27,6 +27,7 @@ import { python } from '@codemirror/lang-python'
 import { java } from '@codemirror/lang-java'
 import { cpp } from '@codemirror/lang-cpp'
 import type { ProgrammingLanguage } from '../types'
+import { useThemeStore } from '../stores/theme'
 
 const props = defineProps<{
   modelValue: string
@@ -39,8 +40,53 @@ const emit = defineEmits<{
 
 const editorContainer = ref<HTMLElement>()
 const editorView = shallowRef<EditorView>()
+const themeStore = useThemeStore()
 
-// Custom dark theme
+// Light theme for editor
+const lightTheme = EditorView.theme(
+  {
+    '&': {
+      backgroundColor: 'var(--bg-surface)',
+      color: 'var(--text-primary)',
+      height: '100%',
+    },
+    '.cm-content': {
+      caretColor: 'var(--accent)',
+      fontFamily: "'JetBrains Mono', monospace",
+      fontSize: '14px',
+      lineHeight: '1.6',
+    },
+    '.cm-cursor': {
+      borderLeftColor: 'var(--accent)',
+    },
+    '&.cm-focused .cm-selectionBackground, .cm-selectionBackground': {
+      backgroundColor: 'var(--accent-soft)',
+    },
+    '.cm-activeLine': {
+      backgroundColor: 'rgba(0, 0, 0, 0.03)',
+    },
+    '.cm-gutters': {
+      backgroundColor: 'transparent',
+      color: 'var(--text-muted)',
+      border: 'none',
+    },
+    '.cm-activeLineGutter': {
+      backgroundColor: 'var(--accent-soft)',
+      color: 'var(--accent)',
+    },
+    '.cm-foldPlaceholder': {
+      backgroundColor: 'var(--bg-elevated)',
+      color: 'var(--text-muted)',
+      border: '1px solid var(--border)',
+    },
+    '.cm-scroller': {
+      overflow: 'auto',
+    },
+  },
+  { dark: false }
+)
+
+// Dark theme for editor
 const darkTheme = EditorView.theme(
   {
     '&': {
@@ -84,6 +130,11 @@ const darkTheme = EditorView.theme(
   { dark: true }
 )
 
+// Get theme extension based on current mode
+function getThemeExtension() {
+  return themeStore.mode === 'dark' ? darkTheme : lightTheme
+}
+
 function getLanguageExtension(lang: ProgrammingLanguage) {
   switch (lang) {
     case 'javascript':
@@ -125,7 +176,7 @@ function createEditor() {
     highlightActiveLine(),
     keymap.of([...defaultKeymap, ...historyKeymap, ...foldKeymap, indentWithTab]),
     getLanguageExtension(props.language),
-    darkTheme,
+    getThemeExtension(),
     EditorView.updateListener.of(update => {
       if (update.docChanged) {
         emit('update:modelValue', update.state.doc.toString())
@@ -152,8 +203,17 @@ onMounted(() => {
   createEditor()
 })
 
+// Recreate editor when language changes
 watch(
   () => props.language,
+  () => {
+    createEditor()
+  }
+)
+
+// Recreate editor when theme changes
+watch(
+  () => themeStore.mode,
   () => {
     createEditor()
   }

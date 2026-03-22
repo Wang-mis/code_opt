@@ -19,7 +19,7 @@ async function loadRandomProblem() {
   try {
     isLoadingProblem.value = true
     error.value = ''
-    const response = await reviewApi.getRandomProblem()
+    const response = await reviewApi.getRandomProblem(problem.value?.id)
     problem.value = response.data || null
   } catch (e: any) {
     error.value = e.response?.status === 404 ? '暂无可复习的题目' : '加载题目失败'
@@ -32,38 +32,26 @@ async function loadRandomProblem() {
 
 <template>
   <div class="relative">
-    <!-- Header -->
-    <header
-      class="flex items-start justify-between mb-6 max-md:flex-col max-md:gap-4 max-md:items-stretch"
+    <!-- Floating refresh button -->
+    <button
+      :disabled="isLoadingProblem"
+      class="floating-btn"
+      title="换一题"
+      @click="loadRandomProblem"
     >
-      <div>
-        <h1
-          class="text-[28px] font-bold m-0 mb-1 bg-linear-to-br from-(--text-primary) to-(--accent) bg-clip-text text-transparent max-md:text-[22px]"
-        >
-          复习
-        </h1>
-        <p class="text-[15px] text-(--text-muted) m-0">随机练习，巩固所学</p>
-      </div>
-      <button
-        :disabled="isLoadingProblem"
-        class="btn btn-secondary min-w-30 whitespace-nowrap max-md:w-full"
-        @click="loadRandomProblem"
+      <svg
+        :class="{ 'animate-spin': isLoadingProblem }"
+        class="w-5 h-5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
       >
-        <svg
-          :class="{ 'animate-spin': isLoadingProblem }"
-          class="w-4 h-4"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path d="M23 4v6h-6"></path>
-          <path d="M1 20v-6h6"></path>
-          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-        </svg>
-        换一题
-      </button>
-    </header>
+        <path d="M23 4v6h-6"></path>
+        <path d="M1 20v-6h6"></path>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+      </svg>
+    </button>
 
     <!-- Error toast -->
     <Transition name="slide-down">
@@ -95,7 +83,7 @@ async function loadRandomProblem() {
     <!-- Loading state -->
     <div
       v-if="isLoadingProblem"
-      class="flex flex-col items-center justify-center py-20 px-5 text-(--text-muted)"
+      class="flex flex-col items-center justify-center min-h-[calc(100vh-64px-48px)] text-(--text-muted)"
     >
       <div
         class="w-8 h-8 border-[3px] border-(--border) border-t-(--accent) rounded-full animate-spin mb-4"
@@ -106,7 +94,7 @@ async function loadRandomProblem() {
     <!-- Empty state -->
     <div
       v-else-if="!problem"
-      class="flex flex-col items-center justify-center py-20 px-5 text-center"
+      class="flex flex-col items-center justify-center min-h-[calc(100vh-64px-48px)] text-center"
     >
       <div
         class="w-20 h-20 flex items-center justify-center bg-(--bg-card) border border-(--border) rounded-2xl mb-5"
@@ -139,6 +127,44 @@ async function loadRandomProblem() {
 </template>
 
 <style scoped>
+/* Floating button */
+.floating-btn {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  z-index: 50;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dark .floating-btn {
+  color: #000;
+}
+
+.floating-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-lg), 0 0 40px var(--accent-glow);
+}
+
+.floating-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.floating-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Transitions */
 .slide-down-enter-active,
 .slide-down-leave-active {
